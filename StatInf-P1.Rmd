@@ -1,0 +1,113 @@
+---
+title: "Statistical Inference - Course project Part 1"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Statistical Inference - Course project Part 1
+
+######(from assignment)
+In this project I will investigate the exponential distribution in R and compare it with the Central Limit Theorem. The exponential distribution can be simulated in R with rexp(n, lambda) where lambda is the rate parameter. The mean of exponential distribution is 1/lambda and the standard deviation is also 1/lambda. Set lambda = 0.2 for all of the simulations. I will investigate the distribution of averages of 40 exponentials. I will do a thousand simulations.
+
+##Exploration
+What's a rexp? - let's do 1000 values and plot them
+```{r, warning=F}
+library(ggplot2)
+set.seed(10101)
+
+#Since this rexp thing is probably random, I will save it
+myDist <- rexp(1000,.2)
+head(myDist)
+summary(myDist)
+#There were warnings asking to set binwidth, so I did it.
+qplot(myDist, binwidth=1)+geom_vline(xintercept = median(myDist)) +
+  ggtitle('Just a rexp example for 1000 counts')
+
+```
+
+##Simulations
+Now let's do 1000 of these with size of 40 per project requirement.
+I will save them to a matrix with 1000 rows and 40 columns
+```{r}
+samples <-1000
+n <- 40
+lambda <- 0.2
+dataSet <-matrix(data=rexp(n * samples, lambda), nrow=samples)
+```
+
+Let's take means of every row (observation)
+```{r}
+means <- apply(dataSet, 1, mean)
+summary(means)
+
+#Let's plot them too!
+g<-qplot(means, binwidth=.1)+geom_vline(xintercept = median(means))
+g
+```
+
+Mean of means turns out to be different every time I run knitr - I should set seed up top.
+With seed 10101 mean of means is constant - 4.966
+
+##Sample Mean versus Theoretical Mean
+Condition of the project is that mean is 1/lambda
+```{r}
+1/lambda
+```
+
+**Theoretical mean 5 and sampled mean 4.966 are pretty close!**
+
+##Sample Variance versus Theoretical Variance
+Let's find theoretical and practical standard deviation and  variance
+```{r}
+theo_sd <- (1/lambda)/sqrt(n)
+theo_sd
+
+theo_var <- theo_sd^2
+theo_var
+
+prac_sd <- sd(means)
+prac_sd
+prac_var <- var(means)
+prac_var
+```
+
+Here we have sd off by couple of decimals(0.7681136 vs 0.7905694), and variance of course in the same area. I wish I had a few years of statistical background to conclude it it close enough, but I also have a gut feeling that in scope of this project the practice will fit the theory, so they are close.
+
+##Distribution
+Here's a overlay with a random distribution with mean = 4.996 and sd = 0.7905694.
+It fits really well, so we conclude the distribution of means of rexp is approximately normal.
+
+```{r, warning=F,message=FALSE}
+line <- rnorm(1000,5,0.7905694)
+df <- data.frame(means=means,line=line)
+ggplot(df, aes(means)) + 
+  geom_histogram(aes(means, bindwidth=.1, fill = "black",alpha = 0.2)) + 
+  geom_histogram(aes(line, bindwidth=.1, fill = "red", alpha = 0.2)) +
+  ggtitle('Overlay of black exponential means with red normal distribution')
+```
+
+
+
+
+Someone else's graph - beautiful overlay
+# density
+y <- dnorm(x = x, mean = mean(x), sd = sd(x))
+x <- as.data.frame(x)
+m <- ggplot(x, aes(x=x))
+# sample histogram bars
+m <- m + geom_histogram(binwidth = 0.3, aes(y = ..density..), col="blue", fill="blue",
+alpha = 0.4)
+# normal curve
+m <- m + geom_area(aes(y = y), alpha = 0.3, fill="yellow", col="navy", size = 0.8)
+# visual comparison of the means
+m <- m + geom_vline(xintercept = mean(x$x), col="darkblue", size = 3.5)
+m <- m + geom_vline(xintercept = 1/lambda, col="orange", size = 1.5, linetype = "dashed")
+# labels
+m <- m + ggtitle(label = "Sample vs. Theoretical Distribution")
+m <- m + labs(x = "Sample Mean", y = "Density")
+m <- m + scale_x_continuous(breaks = c(0:round(sample_mean + (sqrt(sample_var) * 3))))
+# render
+m
